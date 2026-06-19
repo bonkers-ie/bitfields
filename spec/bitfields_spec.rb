@@ -3,27 +3,27 @@ require 'spec_helper'
 class User < ActiveRecord::Base
   include Bitfields
 
-  bitfield :bits, 1 => :seller, 2 => :insane, 4 => :stupid
+  bitfield :bits, 1 => :seller, 2 => :active, 4 => :archived
 end
 
 class UserWithBitfieldOptions < ActiveRecord::Base
   include Bitfields
 
-  bitfield :bits, 1 => :seller, 2 => :insane, 4 => :stupid, :scopes => false
+  bitfield :bits, 1 => :seller, 2 => :active, 4 => :archived, :scopes => false
 end
 
 class UserWithInstanceOptions < ActiveRecord::Base
   self.table_name = 'users'
   include Bitfields
 
-  bitfield :bits, 1 => :seller, 2 => :insane, 4 => :stupid, :added_instance_methods => false
+  bitfield :bits, 1 => :seller, 2 => :active, 4 => :archived, :added_instance_methods => false
 end
 
 class MultiBitUser < ActiveRecord::Base
   self.table_name = 'users'
   include Bitfields
 
-  bitfield :bits, 1 => :seller, 2 => :insane, 4 => :stupid
+  bitfield :bits, 1 => :seller, 2 => :active, 4 => :archived
   bitfield :more_bits, 1 => :one, 2 => :two, 4 => :four
 end
 
@@ -31,7 +31,7 @@ class UserWithoutScopes < ActiveRecord::Base
   self.table_name = 'users'
   include Bitfields
 
-  bitfield :bits, 1 => :seller, 2 => :insane, 4 => :stupid, :scopes => false
+  bitfield :bits, 1 => :seller, 2 => :active, 4 => :archived, :scopes => false
 end
 
 class UserWithoutSetBitfield < ActiveRecord::Base
@@ -62,21 +62,21 @@ class BitOperatorMode < ActiveRecord::Base
   self.table_name = 'users'
   include Bitfields
 
-  bitfield :bits, 1 => :seller, 2 => :insane, :query_mode => :bit_operator
+  bitfield :bits, 1 => :seller, 2 => :active, :query_mode => :bit_operator
 end
 
 class WithoutThePowerOfTwo < ActiveRecord::Base
   self.table_name = 'users'
   include Bitfields
 
-  bitfield :bits, :seller, :insane, :stupid, query_mode: :bit_operator
+  bitfield :bits, :seller, :active, :archived, query_mode: :bit_operator
 end
 
 class WithoutThePowerOfTwoWithoutOptions < ActiveRecord::Base
   self.table_name = 'users'
   include Bitfields
 
-  bitfield :bits, :seller, :insane
+  bitfield :bits, :seller, :active
 end
 
 class CheckRaise < ActiveRecord::Base
@@ -96,7 +96,7 @@ class UserWithExplicitBits < ActiveRecord::Base
   self.table_name = 'users'
   include Bitfields
 
-  bitfield :bits, 1 => :seller, 2 => :insane, 4 => :stupid
+  bitfield :bits, 1 => :seller, 2 => :active, 4 => :archived
   belongs_to :team, optional: true
 end
 
@@ -107,7 +107,7 @@ describe Bitfields do
 
   describe :bitfields do
     it 'parses them correctly' do
-      expect(User.bitfields).to eq({ bits: { seller: 1, insane: 2, stupid: 4 } })
+      expect(User.bitfields).to eq({ bits: { seller: 1, active: 2, archived: 4 } })
     end
 
     it 'is fast for huge number of bits' do
@@ -145,8 +145,8 @@ describe Bitfields do
 
   describe :bitfield_values do
     it 'contains all bits with values' do
-      expect(User.new.bitfield_values(:bits)).to eq({ insane: false, stupid: false, seller: false })
-      expect(User.new(bits: 15).bitfield_values(:bits)).to eq({ insane: true, stupid: true, seller: true })
+      expect(User.new.bitfield_values(:bits)).to eq({ active: false, archived: false, seller: false })
+      expect(User.new(bits: 15).bitfield_values(:bits)).to eq({ active: true, archived: true, seller: true })
     end
   end
 
@@ -156,11 +156,11 @@ describe Bitfields do
     end
 
     it 'adds multiple values' do
-      expect(User.bitfield_bits(insane: true, stupid: true, seller: true)).to eq(7)
+      expect(User.bitfield_bits(active: true, archived: true, seller: true)).to eq(7)
     end
 
     it 'ignores false' do
-      expect(User.bitfield_bits(insane: false, stupid: true, seller: true)).to eq(5)
+      expect(User.bitfield_bits(active: false, archived: true, seller: true)).to eq(5)
     end
 
     it 'fails on unknown bits' do
@@ -214,7 +214,7 @@ describe Bitfields do
 
     it 'does not get negative when unsetting high bits' do
       user = User.new(seller: true)
-      user.stupid = false
+      user.archived = false
       expect(user.bits).to eq(1)
     end
 
@@ -531,25 +531,25 @@ describe Bitfields do
   describe :bitfield_sql do
     it 'includes true states' do
       # 2, 1+2, 2+4, 1+2+4
-      expect(User.bitfield_sql({ insane: true }, query_mode: :in_list)).to eq('users.bits IN (2,3,6,7)')
+      expect(User.bitfield_sql({ active: true }, query_mode: :in_list)).to eq('users.bits IN (2,3,6,7)')
     end
 
     it 'includes invalid states' do
-      expect(User.bitfield_sql({ insane: false }, query_mode: :in_list)).to eq('users.bits IN (0,1,4,5)') # 0, 1, 4, 4+1
+      expect(User.bitfield_sql({ active: false }, query_mode: :in_list)).to eq('users.bits IN (0,1,4,5)') # 0, 1, 4, 4+1
     end
 
     it 'can combine multiple fields' do
       # 1+2, 1+2+4
-      expect(User.bitfield_sql({ seller: true, insane: true }, query_mode: :in_list)).to eq('users.bits IN (3,7)')
+      expect(User.bitfield_sql({ seller: true, active: true }, query_mode: :in_list)).to eq('users.bits IN (3,7)')
     end
 
     it 'can combine multiple fields with different values' do
       # 1, 1+4
-      expect(User.bitfield_sql({ seller: true, insane: false }, query_mode: :in_list)).to eq('users.bits IN (1,5)')
+      expect(User.bitfield_sql({ seller: true, active: false }, query_mode: :in_list)).to eq('users.bits IN (1,5)')
     end
 
     it 'combines multiple columns into one sql' do
-      sql = MultiBitUser.bitfield_sql({ seller: true, insane: false, one: true, four: true },
+      sql = MultiBitUser.bitfield_sql({ seller: true, active: false, one: true, four: true },
                                       query_mode: :in_list)
       expect(sql).to eq('users.bits IN (1,5) AND users.more_bits IN (5,7)') # 1, 1+4 AND 1+4, 1+2+4
     end
@@ -568,89 +568,89 @@ describe Bitfields do
       end
 
       it 'generates sql for each bit' do
-        expect(BitOperatorMode.bitfield_sql(seller: true, insane: false)).to eq('(users.bits & 3) = 1')
+        expect(BitOperatorMode.bitfield_sql(seller: true, active: false)).to eq('(users.bits & 3) = 1')
       end
 
       it 'generates working sql' do
-        BitOperatorMode.create!(seller: true, insane: true)
-        u2 = BitOperatorMode.create!(seller: true, insane: false)
-        BitOperatorMode.create!(seller: false, insane: false)
+        BitOperatorMode.create!(seller: true, active: true)
+        u2 = BitOperatorMode.create!(seller: true, active: false)
+        BitOperatorMode.create!(seller: false, active: false)
 
-        conditions = MultiBitUser.bitfield_sql(seller: true, insane: false)
+        conditions = MultiBitUser.bitfield_sql(seller: true, active: false)
         expect(BitOperatorMode.where(conditions)).to eq([u2])
       end
     end
 
     describe 'with OR' do
       it 'generates sql for each bit' do
-        expect(User.bitfield_sql({ seller: true, insane: true, stupid: false },
+        expect(User.bitfield_sql({ seller: true, active: true, archived: false },
                                  query_mode: :bit_operator_or)).to eq('(users.bits & 3) <> 0 OR (users.bits & 4) <> 4')
       end
 
       it 'generates sql for only ON' do
-        expect(User.bitfield_sql({ seller: true, insane: true },
+        expect(User.bitfield_sql({ seller: true, active: true },
                                  query_mode: :bit_operator_or)).to eq('(users.bits & 3) <> 0')
       end
 
       it 'generates sql for only OFF' do
-        expect(User.bitfield_sql({ seller: false, stupid: false },
+        expect(User.bitfield_sql({ seller: false, archived: false },
                                  query_mode: :bit_operator_or)).to eq('(users.bits & 5) <> 5')
       end
 
       it 'generates working sql' do
-        u1 = User.create!(seller: true, insane: true)
-        u2 = User.create!(seller: true, insane: false)
-        u3 = User.create!(seller: false, insane: false)
-        u4 = User.create!(stupid: true, insane: false)
+        u1 = User.create!(seller: true, active: true)
+        u2 = User.create!(seller: true, active: false)
+        u3 = User.create!(seller: false, active: false)
+        u4 = User.create!(archived: true, active: false)
 
-        conditions = User.bitfield_sql({ seller: true, insane: true }, query_mode: :bit_operator_or)
+        conditions = User.bitfield_sql({ seller: true, active: true }, query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1, u2])
 
-        conditions = User.bitfield_sql({ seller: true, insane: false }, query_mode: :bit_operator_or)
+        conditions = User.bitfield_sql({ seller: true, active: false }, query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1, u2, u3, u4])
 
-        conditions = User.bitfield_sql({ seller: false, insane: false }, query_mode: :bit_operator_or)
+        conditions = User.bitfield_sql({ seller: false, active: false }, query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u2, u3, u4])
       end
 
       it 'generates working sql for multiple ON bits' do
         u1 = User.create!(seller: true)
-        u2 = User.create!(insane: true)
-        u3 = User.create!(stupid: true)
+        u2 = User.create!(active: true)
+        u3 = User.create!(archived: true)
         u4 = User.create! # all off
 
-        conditions = User.bitfield_sql({ seller: true, insane: true, stupid: true },
+        conditions = User.bitfield_sql({ seller: true, active: true, archived: true },
                                        query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1, u2, u3])
 
-        conditions = User.bitfield_sql({ seller: true, stupid: true }, query_mode: :bit_operator_or)
+        conditions = User.bitfield_sql({ seller: true, archived: true }, query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1, u3])
 
         conditions = User.bitfield_sql({ seller: true }, query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1])
 
-        conditions = User.bitfield_sql({ seller: true, insane: true, stupid: false },
+        conditions = User.bitfield_sql({ seller: true, active: true, archived: false },
                                        query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1, u2, u4])
       end
 
       it 'generates working sql for multiple OFF bits' do
-        u1 = User.create!(seller: false, insane: true,  stupid: true)
-        u2 = User.create!(seller: true, insane: false,  stupid: true)
-        u3 = User.create!(seller: true, insane: true,  stupid: false)
-        u4 = User.create!(seller: true, insane: true,  stupid: true) # all ON
+        u1 = User.create!(seller: false, active: true,  archived: true)
+        u2 = User.create!(seller: true, active: false,  archived: true)
+        u3 = User.create!(seller: true, active: true,  archived: false)
+        u4 = User.create!(seller: true, active: true,  archived: true) # all ON
 
-        conditions = User.bitfield_sql({ seller: false, insane: false, stupid: false },
+        conditions = User.bitfield_sql({ seller: false, active: false, archived: false },
                                        query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1, u2, u3])
 
-        conditions = User.bitfield_sql({ seller: false, stupid: false }, query_mode: :bit_operator_or)
+        conditions = User.bitfield_sql({ seller: false, archived: false }, query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1, u3])
 
         conditions = User.bitfield_sql({ seller: false }, query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1])
 
-        conditions = User.bitfield_sql({ seller: false, insane: false, stupid: true },
+        conditions = User.bitfield_sql({ seller: false, active: false, archived: true },
                                        query_mode: :bit_operator_or)
         expect(User.where(conditions)).to eq([u1, u2, u4])
       end
@@ -658,21 +658,21 @@ describe Bitfields do
 
     describe 'without the power of two' do
       it 'uses correct bits' do
-        u = WithoutThePowerOfTwo.create!(seller: false, insane: true, stupid: true)
+        u = WithoutThePowerOfTwo.create!(seller: false, active: true, archived: true)
         expect(u.bits).to eq(6)
       end
 
       it 'has all fields' do
-        u = WithoutThePowerOfTwo.create!(seller: false, insane: true)
+        u = WithoutThePowerOfTwo.create!(seller: false, active: true)
         expect(u.seller).to be(false)
-        expect(u.insane).to be(true)
+        expect(u.active).to be(true)
         expect(WithoutThePowerOfTwo.bitfield_options).to eq({ bits: { query_mode: :bit_operator } })
       end
 
       it 'can e built without options' do
-        u = WithoutThePowerOfTwoWithoutOptions.create!(seller: false, insane: true)
+        u = WithoutThePowerOfTwoWithoutOptions.create!(seller: false, active: true)
         expect(u.seller).to be(false)
-        expect(u.insane).to be(true)
+        expect(u.active).to be(true)
         expect(WithoutThePowerOfTwoWithoutOptions.bitfield_options).to eq({ bits: {} })
       end
     end
@@ -710,31 +710,31 @@ describe Bitfields do
     end
 
     it 'sets multiple bits' do
-      expect(User.set_bitfield_sql(seller: true, insane: true)).to eq('bits = (bits | 3) - 0')
+      expect(User.set_bitfield_sql(seller: true, active: true)).to eq('bits = (bits | 3) - 0')
     end
 
     it 'unsets multiple bits' do
-      expect(User.set_bitfield_sql(seller: false, insane: false)).to eq('bits = (bits | 3) - 3')
+      expect(User.set_bitfield_sql(seller: false, active: false)).to eq('bits = (bits | 3) - 3')
     end
 
     it 'sets and unsets in one command' do
-      expect(User.set_bitfield_sql(seller: false, insane: true)).to eq('bits = (bits | 3) - 1')
+      expect(User.set_bitfield_sql(seller: false, active: true)).to eq('bits = (bits | 3) - 1')
     end
 
     it 'sets and unsets for multiple columns in one sql' do
-      sql = MultiBitUser.set_bitfield_sql(seller: false, insane: true, one: true, two: false)
+      sql = MultiBitUser.set_bitfield_sql(seller: false, active: true, one: true, two: false)
       expect(sql).to eq('bits = (bits | 3) - 1, more_bits = (more_bits | 3) - 2')
     end
 
     it 'produces working sql' do
-      u = MultiBitUser.create!(seller: true, insane: true, stupid: false, one: true, two: false,
+      u = MultiBitUser.create!(seller: true, active: true, archived: false, one: true, two: false,
                                four: false)
-      sql = MultiBitUser.set_bitfield_sql(seller: false, insane: true, one: true, two: false)
+      sql = MultiBitUser.set_bitfield_sql(seller: false, active: true, one: true, two: false)
       MultiBitUser.update_all(sql)
       u.reload
       expect(u.seller).to be(false)
-      expect(u.insane).to be(true)
-      expect(u.stupid).to be(false)
+      expect(u.active).to be(true)
+      expect(u.archived).to be(false)
       expect(u.one).to be(true)
       expect(u.two).to be(false)
       expect(u.four).to be(false)
@@ -742,8 +742,8 @@ describe Bitfields do
   end
 
   describe 'named scopes' do
-    let!(:seller) { User.create!(seller: true, insane: false) }
-    let!(:seller_and_insane) { User.create!(seller: true, insane: true) }
+    let!(:seller) { User.create!(seller: true, active: false) }
+    let!(:seller_and_active) { User.create!(seller: true, active: true) }
 
     it 'creates them when nothing was passed' do
       expect(User.respond_to?(:seller)).to be(true)
@@ -756,11 +756,11 @@ describe Bitfields do
     end
 
     it 'produces working positive scopes' do
-      expect(User.insane.seller.to_a).to eq([seller_and_insane])
+      expect(User.active.seller.to_a).to eq([seller_and_active])
     end
 
     it 'produces working negative scopes' do
-      expect(User.not_insane.seller.to_a).to eq([seller])
+      expect(User.not_active.seller.to_a).to eq([seller])
     end
   end
 
@@ -778,7 +778,7 @@ describe Bitfields do
 
   describe 'inheritance' do
     it 'knows overwritten values and normal' do
-      expect(User.bitfields).to eq({ bits: { seller: 1, insane: 2, stupid: 4 } })
+      expect(User.bitfields).to eq({ bits: { seller: 1, active: 2, archived: 4 } })
       expect(OverwrittenUser.bitfields).to eq({ bits: { seller_inherited: 1 } })
     end
 
@@ -826,7 +826,7 @@ describe Bitfields do
         self.table_name = 'users'
         include Bitfields
 
-        bitfield :bits, :seller, :insane
+        bitfield :bits, :seller, :active
       end
     end
 
@@ -852,7 +852,7 @@ describe Bitfields do
           self.table_name = 'users'
           include Bitfields
 
-          bitfield :bits, 1 => :seller, 2 => :insane
+          bitfield :bits, 1 => :seller, 2 => :active
         end
       end.not_to raise_error
     end
@@ -877,9 +877,9 @@ describe Bitfields do
         self.table_name = 'users'
         include Bitfields
 
-        bitfield :bits, :seller, nil, :stupid
+        bitfield :bits, :seller, nil, :archived
       end
-      expect(klass.bitfields[:bits]).to eq(seller: 1, stupid: 4)
+      expect(klass.bitfields[:bits]).to eq(seller: 1, archived: 4)
     end
 
     it 'reserves a bit position with :_skip' do
@@ -887,9 +887,9 @@ describe Bitfields do
         self.table_name = 'users'
         include Bitfields
 
-        bitfield :bits, :seller, :_skip, :stupid
+        bitfield :bits, :seller, :_skip, :archived
       end
-      expect(klass.bitfields[:bits]).to eq(seller: 1, stupid: 4)
+      expect(klass.bitfields[:bits]).to eq(seller: 1, archived: 4)
     end
   end
 
@@ -922,24 +922,24 @@ describe Bitfields do
   describe :with_bitfields do
     before { User.delete_all }
 
-    let!(:seller) { User.create!(seller: true, insane: false) }
-    let!(:insane) { User.create!(seller: false, insane: true) }
+    let!(:seller) { User.create!(seller: true, active: false) }
+    let!(:active) { User.create!(seller: false, active: true) }
 
     it 'returns rows matching a single bit' do
       expect(User.with_bitfields(seller: true).to_a).to eq([seller])
     end
 
     it 'returns rows matching on and off bits' do
-      expect(User.with_bitfields(seller: true, insane: false).to_a).to eq([seller])
+      expect(User.with_bitfields(seller: true, active: false).to_a).to eq([seller])
     end
 
     it 'negates with without_bitfields' do
-      expect(User.without_bitfields(seller: true).to_a).to eq([insane])
+      expect(User.without_bitfields(seller: true).to_a).to eq([active])
     end
 
     it 'is chainable as a relation' do
       expect(User.with_bitfields(seller: true)).to be_a(ActiveRecord::Relation)
-      expect(User.with_bitfields(seller: true).not_insane.to_a).to eq([seller])
+      expect(User.with_bitfields(seller: true).not_active.to_a).to eq([seller])
     end
   end
 

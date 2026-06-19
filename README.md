@@ -12,10 +12,10 @@ e.g. true-false-false = 1, false-true-false = 2,  true-false-true = 5 (1,2,4,8,.
 ```ruby
 class User < ActiveRecord::Base
   include Bitfields
-  bitfield :my_bits, 1 => :seller, 2 => :insane, 4 => :sensible
+  bitfield :my_bits, 1 => :seller, 2 => :active, 4 => :sensible
 end
 
-user = User.new(seller: true, insane: true)
+user = User.new(seller: true, active: true)
 user.seller # => true
 user.sensible? # => false
 user.my_bits # => 3
@@ -23,22 +23,22 @@ user.my_bits # => 3
 
 ### Always declare explicit bits
 
-`bitfield :my_bits, 1 => :seller, 2 => :insane, 4 => :sensible` maps each name to an explicit bit,
+`bitfield :my_bits, 1 => :seller, 2 => :active, 4 => :sensible` maps each name to an explicit bit,
 so the mapping is locked even if you reorder the list. The positional shorthand
-`bitfield :my_bits, :seller, :insane, :sensible` instead maps each name to `2**index`, which means
+`bitfield :my_bits, :seller, :active, :sensible` instead maps each name to `2**index`, which means
 **inserting, removing, or reordering a name silently shifts every later bit and corrupts stored
 data**. By default a positional declaration now emits a warning; see
 [`Bitfields.positional_bits`](#positional-bit-safety).
 
- - records bitfield_changes `user.bitfield_changes # => {"seller" => [false, true], "insane" => [false, true]}` (also `seller_was` / `seller_change` / `seller_changed?` / `seller_became_true?` / `seller_became_false?`)
+ - records bitfield_changes `user.bitfield_changes # => {"seller" => [false, true], "active" => [false, true]}` (also `seller_was` / `seller_change` / `seller_changed?` / `seller_became_true?` / `seller_became_false?`)
    - Individual added methods (i.e, `seller_was`, `seller_changed?`, etc..) can be deactivated with `bitfield ..., added_instance_methods: false`
    - **Note**: when used in the context of an `after_save` callback, `_was` returns the current value and `_changed?` returns `false`, since the previous changes have been persisted.
- - convenient queries `User.with_bitfields(seller: true, insane: false)` and `User.without_bitfields(seller: true)`
+ - convenient queries `User.with_bitfields(seller: true, active: false)` and `User.without_bitfields(seller: true)`
  - adds scopes `User.seller.sensible.first` (deactivate with `bitfield ..., scopes: false`)
- - builds sql `User.bitfield_sql(insane: true, sensible: false) # => '(users.my_bits & 6) = 2'`
- - builds sql with OR condition `User.bitfield_sql({ insane: true, sensible: true }, query_mode: :bit_operator_or) # => '(users.my_bits & 2) = 2 OR (users.my_bits & 4) = 4'`
- - builds index-using sql with `bitfield ... , query_mode: :in_list` and `User.bitfield_sql(insane: true, sensible: false) # => 'users.my_bits IN (2, 3)'` (2 and 1+2) often slower than :bit_operator sql especially for high number of bits
- - builds update sql `User.set_bitfield_sql(insane: true, sensible: false) == 'my_bits = (my_bits | 6) - 4'`
+ - builds sql `User.bitfield_sql(active: true, sensible: false) # => '(users.my_bits & 6) = 2'`
+ - builds sql with OR condition `User.bitfield_sql({ active: true, sensible: true }, query_mode: :bit_operator_or) # => '(users.my_bits & 2) = 2 OR (users.my_bits & 4) = 4'`
+ - builds index-using sql with `bitfield ... , query_mode: :in_list` and `User.bitfield_sql(active: true, sensible: false) # => 'users.my_bits IN (2, 3)'` (2 and 1+2) often slower than :bit_operator sql especially for high number of bits
+ - builds update sql `User.set_bitfield_sql(active: true, sensible: false) == 'my_bits = (my_bits | 6) - 4'`
  - **faster sql than any other bitfield lib** through combination of multiple bits into a single sql statement
  - gives access to bits `User.bitfields[:my_bits][:sensible] # => 4`
  - converts hash to bits `User.bitfield_bits(seller: true) # => 1`
@@ -75,10 +75,10 @@ Instance Methods
 ================
 
 ### Global Bitfield Methods
-| Method Name        | Example (`user = User.new(seller: true, insane: true`)  | Result                                                      |
+| Method Name        | Example (`user = User.new(seller: true, active: true`)  | Result                                                      |
 |--------------------|---------------------------------------------------------|-------------------------------------------------------------|
-| `bitfield_values`  | `user.bitfield_values`                                  | `{"seller" => true, "insane" => true, "sensible" => false}` |
-| `bitfield_changes` | `user.bitfield_changes`                                 | `{"seller" => [false, true], "insane" => [false, true]}`    |
+| `bitfield_values`  | `user.bitfield_values`                                  | `{"seller" => true, "active" => true, "sensible" => false}` |
+| `bitfield_changes` | `user.bitfield_changes`                                 | `{"seller" => [false, true], "active" => [false, true]}`    |
 
 ### Individual Bit Methods
 #### Model Getters / Setters
@@ -119,7 +119,7 @@ Examples
 Update all users
 
 ```ruby
-User.seller.not_sensible.update_all(User.set_bitfield_sql(seller: true, insane: true))
+User.seller.not_sensible.update_all(User.set_bitfield_sql(seller: true, active: true))
 ```
 
 Delete the shop when a user is no longer a seller
@@ -131,8 +131,8 @@ before_save :delete_shop, if: -> { |u| u.seller_change == [true, false] }
 List fields and their respective values
 
 ```ruby
-user = User.new(insane: true)
-user.bitfield_values(:my_bits) # => { seller: false, insane: true, sensible: false }
+user = User.new(active: true)
+user.bitfield_values(:my_bits) # => { seller: false, active: true, sensible: false }
 ```
 
 Querying through associations
