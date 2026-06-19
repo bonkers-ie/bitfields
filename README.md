@@ -1,5 +1,13 @@
+# bonkers-bitfields
+
+[![CI](https://github.com/bonkers-ie/bitfields/actions/workflows/ci.yml/badge.svg)](https://github.com/bonkers-ie/bitfields/actions/workflows/ci.yml)
+
 Save migrations and columns by storing multiple booleans in a single integer.<br/>
 e.g. true-false-false = 1, false-true-false = 2,  true-false-true = 5 (1,2,4,8,..)
+
+> This is a maintained fork of [grosser/bitfields](https://github.com/grosser/bitfields),
+> published on RubyGems as **`bonkers-bitfields`**. The library is still required as
+> `bitfields` and the module is still `Bitfields`, so existing code does not change.
 
 ```ruby
 class User < ActiveRecord::Base
@@ -13,25 +21,45 @@ user.sensible? # => false
 user.my_bits # => 3
 ```
 
+### Always declare explicit bits
+
+`bitfield :my_bits, 1 => :seller, 2 => :insane, 4 => :sensible` maps each name to an explicit bit,
+so the mapping is locked even if you reorder the list. The positional shorthand
+`bitfield :my_bits, :seller, :insane, :sensible` instead maps each name to `2**index`, which means
+**inserting, removing, or reordering a name silently shifts every later bit and corrupts stored
+data**. By default a positional declaration now emits a warning; see
+[`Bitfields.positional_bits`](#positional-bit-safety).
+
  - records bitfield_changes `user.bitfield_changes # => {"seller" => [false, true], "insane" => [false, true]}` (also `seller_was` / `seller_change` / `seller_changed?` / `seller_became_true?` / `seller_became_false?`)
    - Individual added methods (i.e, `seller_was`, `seller_changed?`, etc..) can be deactivated with `bitfield ..., added_instance_methods: false`
-   - **Note**: ActiveRecord 5.2 changes the behavior of `_was` and `_changed?` methods when used in the context of an `after_save` callback.
-     - ActiveRecord 5.1 will use the use the values that were _just_ changed.
-     - ActiveRecord 5.2, however, will return the current value for `_was` and `false` for `_changed?` since the previous changes have been persisted.
+   - **Note**: when used in the context of an `after_save` callback, `_was` returns the current value and `_changed?` returns `false`, since the previous changes have been persisted.
+ - convenient queries `User.with_bitfields(seller: true, insane: false)` and `User.without_bitfields(seller: true)`
  - adds scopes `User.seller.sensible.first` (deactivate with `bitfield ..., scopes: false`)
- - builds sql `User.bitfield_sql(insane: true, sensible: false) # => '(users.my_bits & 6) = 1'`
- - builds sql with OR condition `User.bitfield_sql({ insane: true, sensible: true }, query_mode: :bit_operator_or) # => '(users.my_bits & 2) = 2 OR (users.bits & 4) = 4'`
+ - builds sql `User.bitfield_sql(insane: true, sensible: false) # => '(users.my_bits & 6) = 2'`
+ - builds sql with OR condition `User.bitfield_sql({ insane: true, sensible: true }, query_mode: :bit_operator_or) # => '(users.my_bits & 2) = 2 OR (users.my_bits & 4) = 4'`
  - builds index-using sql with `bitfield ... , query_mode: :in_list` and `User.bitfield_sql(insane: true, sensible: false) # => 'users.my_bits IN (2, 3)'` (2 and 1+2) often slower than :bit_operator sql especially for high number of bits
  - builds update sql `User.set_bitfield_sql(insane: true, sensible: false) == 'my_bits = (my_bits | 6) - 4'`
  - **faster sql than any other bitfield lib** through combination of multiple bits into a single sql statement
  - gives access to bits `User.bitfields[:my_bits][:sensible] # => 4`
  - converts hash to bits `User.bitfield_bits(seller: true) # => 1`
 
+Bit names must be unique per model: declaring the same name in two columns raises
+`Bitfields::DuplicateBitNameError`.
+
 Install
 =======
 
+```bash
+gem install bonkers-bitfields
 ```
-gem install bitfields
+
+```ruby
+# Gemfile
+gem "bonkers-bitfields"
+```
+
+```ruby
+require "bitfields" # the library path and the Bitfields module are unchanged
 ```
 
 ### Migration
@@ -107,15 +135,39 @@ user = User.new(insane: true)
 user.bitfield_values(:my_bits) # => { seller: false, insane: true, sensible: false }
 ```
 
+Querying through associations
+
+```ruby
+# `with_bitfields` builds an Arel predicate, so it composes with eager loading. A raw string
+# condition would silently match nothing here on modern ActiveRecord.
+Team.includes(:members).references(:members).merge(User.with_bitfields(seller: true))
+```
+
+<a name="positional-bit-safety"></a>
+Positional bit safety
+=====================
+Control how the positional shorthand (`bitfield :bits, :foo, :bar`) is treated:
+
+```ruby
+Bitfields.positional_bits = :warn   # default: warn that positional bits are fragile
+Bitfields.positional_bits = :forbid # raise Bitfields::PositionalBitsError instead
+Bitfields.positional_bits = :allow  # legacy behaviour, no warning
+```
+
+If you keep positional declarations, you can reserve a bit position with `nil` or `:_skip` so
+removing a bit does not shift the bits after it:
+
+```ruby
+bitfield :bits, :seller, nil, :sensible # seller => 1, sensible => 4 (bit 2 left unused)
+```
+
 TIPS
 ====
- - [Upgrading] in version 0.2.2 the first field(when not given as hash) used bit 2 -> add a bogus field in first position
- - [Defaults for new records] set via db migration or name the bit foo_off to avoid confusion, setting via after_initialize [does not work](https://github.com/grosser/bitfields/commit/2170dc546e2c4f1187089909a80e8602631d0796) 
+ - [Defaults for new records] set via db migration or name the bit foo_off to avoid confusion, setting via after_initialize [does not work](https://github.com/grosser/bitfields/commit/2170dc546e2c4f1187089909a80e8602631d0796)
  - It is slow to do: `#{bitfield_sql(...)} AND #{bitfield_sql(...)}`, merge both into one hash
  - bit_operator is faster in most cases, use `query_mode: :in_list` sparingly
  - Standard mysql integer is 4 byte -> 32 bitfields
- - If you are lazy or bad at math you can also do `bitfields :bits, :foo, :bar, :baz`
- - If you are want more readability and reduce clutter you can do `bitfields 2**0 => :foo, 2**1 => :bar, 2**32 => :baz`
+ - Prefer explicit bits `bitfield :bits, 1 => :foo, 2 => :bar, 4 => :baz` (or `2**0 => :foo, 2**1 => :bar`) over the positional shorthand `bitfield :bits, :foo, :bar, :baz`
 
 Query-mode Benchmark
 =========
@@ -133,13 +185,13 @@ To assert that a specific flag is a bitfield flag and has the `active?`, `active
 require 'bitfields/rspec'
 
 describe User do
-  it { should have_a_bitfield :active }
+  it { is_expected.to have_a_bitfield :active }
 end
 ````
 
-TODO
-====
- - convenient named scope `User.with_bitfields(xxx: true, yyy: false)`
+Supported versions
+===================
+Ruby >= 3.1 and ActiveRecord 6.1 – 8.0, tested on CI.
 
 Authors
 =======
@@ -157,7 +209,6 @@ Authors
  - [Shirish Pampoorickal](https://github.com/shirish-pampoorickal)
  - [Sergey Kojin](https://github.com/skojin)
 
-[Michael Grosser](http://grosser.it)<br/>
-michael@grosser.it<br/>
-License: MIT<br/>
-[![Build Status](https://travis-ci.org/grosser/bitfields.png)](https://travis-ci.org/grosser/bitfields)
+Originally by [Michael Grosser](http://grosser.it) (michael@grosser.it).<br/>
+Maintained as `bonkers-bitfields` by [Bonkers.ie](https://github.com/bonkers-ie).<br/>
+License: MIT

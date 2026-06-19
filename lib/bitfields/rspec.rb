@@ -1,9 +1,10 @@
+# frozen_string_literal: true
+
 RSpec::Matchers.define :have_a_bitfield do |field|
   match do |klass|
     klass.respond_to?(field) &&
-    klass.respond_to?(field) &&
-    klass.respond_to?("#{field}?") &&
-    klass.respond_to?("#{field}=")
+      klass.respond_to?("#{field}?") &&
+      klass.respond_to?("#{field}=")
   end
 
   failure_message do |klass|

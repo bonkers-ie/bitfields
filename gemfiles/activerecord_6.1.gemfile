@@ -1,5 +1,9 @@
 source "https://rubygems.org"
 
 gem "activerecord", "~> 6.1.0"
+gem "sqlite3", "~> 1.4"
+# ActiveSupport 6.1 references ::Logger without requiring it; concurrent-ruby >= 1.3.5 stopped
+# loading logger implicitly. Pin below that to keep this row green.
+gem "concurrent-ruby", "1.3.4"
 
 gemspec path: "../"
