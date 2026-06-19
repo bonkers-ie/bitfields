@@ -105,7 +105,7 @@ module Bitfields
       predicates.reduce(:and)
     end
 
-    # Convenient named query: `User.with_bitfields(seller: true, active: false)`
+    # Convenient named query: `User.with_bitfields(vendor: true, zany: false)`
     def with_bitfields(bit_values)
       where(bitfield_arel(bit_values))
     end
