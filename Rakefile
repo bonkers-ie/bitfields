@@ -1,10 +1,9 @@
-require "bundler/setup"
-require "bundler/gem_tasks"
-require "bump/tasks"
-require "wwtd/tasks"
+require 'bundler/setup'
+require 'bundler/gem_tasks'
+require 'bump/tasks'
 
 task :spec do
-  sh "rspec spec/"
+  sh 'rspec spec/'
 end
 
-task default: "wwtd:local"
+task default: :spec
