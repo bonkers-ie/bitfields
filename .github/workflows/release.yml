@@ -5,7 +5,7 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write   # create the GitHub Release
+  contents: read    # gem publish needs no write; the GitHub Release is handled by github-release.yml
   id-token: write   # OIDC token for RubyGems trusted publishing
 
 jobs:
@@ -20,17 +20,3 @@ jobs:
           bundler-cache: true
       - run: bundle exec rake spec
       - uses: rubygems/release-gem@v1
-
-      # Publish a matching GitHub Release, using this version's CHANGELOG section as the body.
-      - name: Extract changelog section
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          awk -v ver="$version" '
-            $0 ~ "^## \\[" ver "\\]" {flag=1; next}
-            flag && /^## \[/ {exit}
-            flag {print}
-          ' CHANGELOG.md > release-notes.md
-      - uses: softprops/action-gh-release@v2
-        with:
-          body_path: release-notes.md
-          generate_release_notes: true   # append auto-generated PR/commit notes below the changelog

@@ -1,0 +1,39 @@
+name: GitHub Release
+
+# Creates/updates a GitHub Release for a tag, using that version's CHANGELOG section as the body.
+# Runs automatically when a `v*` tag is pushed, and can be run manually against an existing tag
+# (Actions tab → "GitHub Release" → "Run workflow") to backfill releases for tags pushed earlier.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to create the Release for, e.g. v1.0.2"
+        required: true
+
+permissions:
+  contents: write   # required to create the Release
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+      - name: Extract changelog section
+        run: |
+          version="${TAG#v}"
+          awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" {flag=1; next}
+            flag && /^## \[/ {exit}
+            flag {print}
+          ' CHANGELOG.md > release-notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          body_path: release-notes.md
+          generate_release_notes: true   # append auto-generated PR/commit notes below the changelog
