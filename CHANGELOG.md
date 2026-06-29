@@ -26,6 +26,7 @@ All notable changes to this project are documented here. The format is based on
 - `with_bitfields` / `without_bitfields` class query methods (resolves the long-standing README
   TODO), built on Arel so they survive eager-load table aliasing (resolves
   [#45](https://github.com/grosser/bitfields/issues/45)).
+- Tested against ActiveRecord 8.1 (Ruby 3.2+); supported range is now AR 6.1 – 8.1.
 - GitHub Actions CI (`.github/workflows/ci.yml`) now lints and runs the test matrix on **every
   branch** as well as pull requests, with concurrent superseded runs cancelled.
 - Release workflow (`.github/workflows/release.yml`) that publishes the gem to RubyGems via

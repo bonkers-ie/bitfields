@@ -192,7 +192,7 @@ end
 
 Supported versions
 ===================
-Ruby >= 3.1 and ActiveRecord 6.1 – 8.0, tested on CI.
+Ruby >= 3.1 and ActiveRecord 6.1 – 8.1, tested on CI.
 
 Authors
 =======
@@ -205,7 +205,7 @@ Authors
  - [Justin Aiken](https://github.com/JustinAiken)
  - [szTheory](https://github.com/szTheory)
  - [Reed G. Law](https://github.com/reedlaw)
- - [Rael Gugelmin Cunha](https://github.com/reedlaw)
+ - [Rael Gugelmin Cunha](https://github.com/raelgc)
  - [Alan Wong](https://github.com/naganowl)
  - [Andrew Bates](https://github.com/a-bates)
  - [Shirish Pampoorickal](https://github.com/shirish-pampoorickal)

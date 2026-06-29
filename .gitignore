@@ -4,3 +4,4 @@
 /.bundle/
 gemfiles/*.lock
 *.gem
+/Gemfile.lock
