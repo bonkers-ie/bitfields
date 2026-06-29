@@ -86,7 +86,7 @@ Instance Methods
 |----------------|-----------------------------|---------|
 | `#{bit_name}`  | `user.vendor`               | `false` |
 | `#{bit_name}=` | `user.vendor = true`        | `true`  |
-| `#{bit_name}?` | `user.vendor?`              | `true`  |
+| `#{bit_name}?` | `user.vendor = true; user.vendor?` | `true`  |
 
 #### Dirty Methods:
 
@@ -196,7 +196,8 @@ Ruby >= 3.1 and ActiveRecord 6.1 – 8.0, tested on CI.
 
 Authors
 =======
-### [Contributors](http://github.com/grosser/bitfields/contributors)
+### [Contributors](https://github.com/bonkers-ie/bitfields/contributors)
+ - [Ben Walsh](https://github.com/benwalsh)
  - [Hellekin O. Wolf](https://github.com/hellekin)
  - [John Wilkinson](https://github.com/jcwilk)
  - [PeppyHeppy](https://github.com/peppyheppy)
