@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-30
+
+### Fixed
+- Plain `gem "bonkers-bitfields"` now loads the library under Bundler's auto-require (e.g. Rails'
+  `Bundler.require`). Because the gem name (`bonkers-bitfields`) no longer matches the library file
+  (`bitfields.rb`), Bundler previously failed to require it silently, leaving `Bitfields` undefined.
+  A `lib/bonkers-bitfields.rb` shim that `require`s `bitfields` resolves this, so `require: "bitfields"`
+  in the `Gemfile` is no longer needed.
+
 ## [1.0.1] - 2026-06-29
 
 ### Added
@@ -57,6 +66,7 @@ All notable changes to this project are documented here. The format is based on
 - Travis CI (replaced with GitHub Actions) and the `wwtd` development dependency.
 - Support for Ruby < 3.1 and ActiveRecord < 6.1.
 
-[Unreleased]: https://github.com/bonkers-ie/bitfields/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/bonkers-ie/bitfields/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/bonkers-ie/bitfields/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bonkers-ie/bitfields/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/bonkers-ie/bitfields/releases/tag/v1.0.0

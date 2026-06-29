@@ -78,6 +78,11 @@ Metrics/ParameterLists:
 Metrics/PerceivedComplexity:
   Enabled: false
 
+# The gem-name shim must be named with a dash to match `gem "bonkers-bitfields"`.
+Naming/FileName:
+  Exclude:
+    - "lib/bonkers-bitfields.rb"
+
 Naming/MemoizedInstanceVariableName:
   Enabled: false
 
