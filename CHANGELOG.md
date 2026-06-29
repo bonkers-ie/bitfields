@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-29
+
+### Added
+- Tested against ActiveRecord 8.1 (Ruby 3.2+); supported range is now AR 6.1 – 8.1.
+
+### Fixed
+- Corrected the `Rael Gugelmin Cunha` contributor link, which pointed at another contributor's
+  GitHub profile.
+
+### Changed
+- `Gemfile.lock` is no longer committed (standard for a library), so CI resolves dependencies
+  fresh against each `gemfiles/*.gemfile`.
+
+## [1.0.0] - 2026-06-29
+
 ### Changed (breaking)
 - **Renamed the published gem to `bonkers-bitfields`.** The required library path
   (`require "bitfields"`) and the `Bitfields` module are unchanged, so `include Bitfields`
@@ -26,7 +41,6 @@ All notable changes to this project are documented here. The format is based on
 - `with_bitfields` / `without_bitfields` class query methods (resolves the long-standing README
   TODO), built on Arel so they survive eager-load table aliasing (resolves
   [#45](https://github.com/grosser/bitfields/issues/45)).
-- Tested against ActiveRecord 8.1 (Ruby 3.2+); supported range is now AR 6.1 – 8.1.
 - GitHub Actions CI (`.github/workflows/ci.yml`) now lints and runs the test matrix on **every
   branch** as well as pull requests, with concurrent superseded runs cancelled.
 - Release workflow (`.github/workflows/release.yml`) that publishes the gem to RubyGems via
@@ -42,3 +56,7 @@ All notable changes to this project are documented here. The format is based on
 ### Removed
 - Travis CI (replaced with GitHub Actions) and the `wwtd` development dependency.
 - Support for Ruby < 3.1 and ActiveRecord < 6.1.
+
+[Unreleased]: https://github.com/bonkers-ie/bitfields/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/bonkers-ie/bitfields/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/bonkers-ie/bitfields/releases/tag/v1.0.0
